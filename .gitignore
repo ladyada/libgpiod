@@ -8,6 +8,7 @@ gpioget
 gpioset
 gpiomon
 gpiofind
+gpio-dbus
 gpiod_cxx_tests
 gpiodetectcxx
 gpiofindcxx
