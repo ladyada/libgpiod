@@ -134,7 +134,13 @@ then
 	AC_CHECK_FUNC([daemon], [], [FUNC_NOT_FOUND_GLIB([daemon])])
 	PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.50])
 	PKG_CHECK_MODULES([GIO], [gio-2.0 >= 2.50])
+	PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0 >= 2.50])
 	PKG_CHECK_MODULES([GUDEV], [gudev-1.0 >= 230])
+	AC_CHECK_PROG([has_gdbus_codegen], [gdbus-codegen], [true], [false])
+	if test "x$has_gdbus_codegen" = xfalse
+	then
+		AC_MSG_ERROR([gdbus-codegen not found - needed to build dbus daemon])
+	fi
 fi
 
 AC_ARG_ENABLE([tests],
@@ -222,6 +228,8 @@ AC_CONFIG_FILES([libgpiod.pc
 		 src/lib/Makefile
 		 src/tools/Makefile
 		 src/dbus/Makefile
+		 src/dbus/data/Makefile
+		 src/dbus/examples/Makefile
 		 tests/Makefile
 		 bindings/cxx/libgpiodcxx.pc
 		 bindings/Makefile

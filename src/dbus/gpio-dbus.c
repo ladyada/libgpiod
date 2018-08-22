@@ -5,6 +5,8 @@
  * Copyright (C) 2018 Bartosz Golaszewski <bartekgola@gmail.com>
  */
 
+#include "generated-gpio-dbus.h"
+
 #include <gpiod.h>
 #include <glib.h>
 #include <glib-unix.h>
@@ -15,33 +17,31 @@
 #include <stdarg.h>
 #include <errno.h>
 
-typedef struct ChipCtx {
+struct _ChipCtx {
+	GObject parent;
 	struct gpiod_chip *handle;
-	guint obj_id;
-	GDBusConnection *dbus_conn;
-} ChipCtx;
+};
 
-typedef struct MainLoopCtx {
+struct _ChipCtxClass {
+	GObjectClass parent;
+};
+
+G_DEFINE_TYPE(ChipCtx, chip_ctx, G_TYPE_OBJECT);
+
+struct _MainLoopCtx {
+	GObject parent;
 	GMainLoop *loop;
 	GUdevClient *udev;
 	GDBusConnection *bus;
 	guint bus_id;
 	GHashTable *chips;
-	GDBusNodeInfo *introspect;
-} MainLoopCtx;
-
-static const gchar introspect_xml[] =
-	"<node>"
-	"  <interface name='org.gpiod.Chip'>"
-	"    <property name='Name' type='s' access='read' />"
-	"    <property name='Label' type='s' access='read' />"
-	"    <property name='NumLines' type='u' access='read' />"
-	"  </interface>"
-	"</node>";
-
-enum {
-	CHIP_INTF = 0,
 };
+
+struct _MainLoopCtxClass {
+	GObjectClass parent;
+};
+
+G_DEFINE_TYPE(MainLoopCtx, main_loop_ctx, G_TYPE_OBJECT);
 
 static const gchar* const udev_subsystems[] = { "gpio", NULL };
 
@@ -143,32 +143,6 @@ static gboolean on_sighup(gpointer data G_GNUC_UNUSED)
 
 	return G_SOURCE_CONTINUE;
 }
-
-static GVariant *
-on_chip_property_get(GDBusConnection *connection G_GNUC_UNUSED,
-		     const gchar *sender, const gchar *object,
-		     const gchar *interface, const gchar *property,
-		     GError **error G_GNUC_UNUSED, gpointer user_data)
-{
-	ChipCtx *chip = user_data;
-
-	g_debug("property get - sender: %s, object: %s, interface: %s, property: %s",
-		sender, object, interface, property);
-
-	/* TODO: use a hash table? */
-	if (g_strcmp0(property, "Name") == 0)
-		return g_variant_new_string(gpiod_chip_name(chip->handle));
-	if (g_strcmp0(property, "Label") == 0)
-		return g_variant_new_string(gpiod_chip_label(chip->handle));
-	if (g_strcmp0(property, "NumLines") == 0)
-		return g_variant_new_uint32(gpiod_chip_num_lines(chip->handle));
-
-	return NULL;
-}
-
-static const GDBusInterfaceVTable chip_intf_vtable = {
-	.get_property = on_chip_property_get,
-};
 
 /*
  * We get two uevents per action per gpiochip. One is for the new-style
